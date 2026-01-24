@@ -1,0 +1,20 @@
+# Binaries
+nanoctl
+nanoctl-linux-arm64
+nanoctl-linux-arm
+
+# Go
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
