@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -23,7 +24,8 @@ type FanConfig struct {
 	} `yaml:"gpio"`
 
 	Temperature struct {
-		Target float64 `yaml:"target"`
+		Target float64      `yaml:"target"`
+		Source SourceConfig `yaml:"source"`
 	} `yaml:"temperature"`
 
 	PID struct {
@@ -32,9 +34,44 @@ type FanConfig struct {
 		Kd float64 `yaml:"kd"`
 	} `yaml:"pid"`
 
+	Metrics struct {
+		Enabled  bool        `yaml:"enabled"`
+		Endpoint string      `yaml:"endpoint"` // e.g. "localhost:4317"
+		Insecure bool        `yaml:"insecure"`
+		Interval string      `yaml:"interval"` // e.g. "5s"
+		Auth     *AuthConfig `yaml:"auth,omitempty"`
+	} `yaml:"metrics"`
+
 	Monitor struct {
 		CheckInterval string `yaml:"check_interval"`
 	} `yaml:"monitor"`
+}
+
+// SourceConfig holds configuration for temperature sources
+type SourceConfig struct {
+	Primary    string            `yaml:"primary"`              // "prometheus" or "file"
+	Fallback   string            `yaml:"fallback"`             // "file"
+	Prometheus *PrometheusConfig `yaml:"prometheus,omitempty"` // Optional
+	File       FileSourceConfig  `yaml:"file"`
+}
+
+// PrometheusConfig holds configuration specific to the Prometheus source.
+type PrometheusConfig struct {
+	Host    string      `yaml:"host"`              // Required: http://host:port or https://host:port
+	Query   string      `yaml:"query,omitempty"`   // Optional: defaults to max(node_hwmon_temp_celsius{sensor="temp0"})
+	Timeout string      `yaml:"timeout,omitempty"` // Optional: defaults to "5s"
+	Auth    *AuthConfig `yaml:"auth,omitempty"`    // Optional: Basic auth
+}
+
+// AuthConfig holds authentication details.
+type AuthConfig struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password,omitempty"`
+}
+
+// FileSourceConfig holds configuration specific to the file source.
+type FileSourceConfig struct {
+	Path string `yaml:"path"`
 }
 
 // LoadFanConfig loads the fan configuration from a YAML file
@@ -74,6 +111,18 @@ func applyDefaults(config *FanConfig) {
 	if config.Temperature.Target == 0 {
 		config.Temperature.Target = 55.0
 	}
+
+	// Default temperature source settings
+	if config.Temperature.Source.Primary == "" {
+		config.Temperature.Source.Primary = "file"
+	}
+	if config.Temperature.Source.Fallback == "" {
+		config.Temperature.Source.Fallback = "file"
+	}
+	if config.Temperature.Source.File.Path == "" {
+		config.Temperature.Source.File.Path = "/sys/class/thermal/thermal_zone0/temp"
+	}
+
 	if config.PID.Kp == 0 {
 		config.PID.Kp = 5.0
 	}
@@ -83,6 +132,15 @@ func applyDefaults(config *FanConfig) {
 	if config.PID.Kd == 0 {
 		config.PID.Kd = 0.5
 	}
+
+	// Default metrics settings
+	if config.Metrics.Endpoint == "" {
+		config.Metrics.Endpoint = "localhost:4317"
+	}
+	if config.Metrics.Interval == "" {
+		config.Metrics.Interval = "10s"
+	}
+
 	if config.Monitor.CheckInterval == "" {
 		config.Monitor.CheckInterval = "1s"
 	}
@@ -114,6 +172,49 @@ func (c *FanConfig) Validate() error {
 	// Validate check interval (must be parseable as duration)
 	if _, err := time.ParseDuration(c.Monitor.CheckInterval); err != nil {
 		return fmt.Errorf("monitor.check_interval must be a valid duration (e.g., '1s', '500ms'): %w", err)
+	}
+
+	// Validate temperature source configuration
+	if err := c.validateTemperatureSource(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *FanConfig) validateTemperatureSource() error {
+	// Validate primary source type
+	if c.Temperature.Source.Primary != "file" && c.Temperature.Source.Primary != "prometheus" {
+		return fmt.Errorf("temperature.source.primary must be 'file' or 'prometheus', got '%s'", c.Temperature.Source.Primary)
+	}
+
+	// If prometheus is primary, validate prometheus config
+	if c.Temperature.Source.Primary == "prometheus" {
+		if c.Temperature.Source.Prometheus == nil {
+			return fmt.Errorf("temperature.source.prometheus configuration is required when primary is 'prometheus'")
+		}
+
+		if c.Temperature.Source.Prometheus.Host == "" {
+			return fmt.Errorf("temperature.source.prometheus.host is required")
+		}
+
+		// Validate URL format
+		if !strings.HasPrefix(c.Temperature.Source.Prometheus.Host, "http://") &&
+			!strings.HasPrefix(c.Temperature.Source.Prometheus.Host, "https://") {
+			return fmt.Errorf("temperature.source.prometheus.host must start with http:// or https://")
+		}
+
+		// Validate timeout if provided
+		if c.Temperature.Source.Prometheus.Timeout != "" {
+			if _, err := time.ParseDuration(c.Temperature.Source.Prometheus.Timeout); err != nil {
+				return fmt.Errorf("temperature.source.prometheus.timeout must be a valid duration: %w", err)
+			}
+		}
+	}
+
+	// Validate file source path
+	if c.Temperature.Source.File.Path == "" {
+		return fmt.Errorf("temperature.source.file.path is required")
 	}
 
 	return nil

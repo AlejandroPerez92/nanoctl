@@ -10,6 +10,8 @@ The tool uses the [go-gpiocdev](https://github.com/warthog618/go-gpiocdev) libra
 - Power off CM5 nodes (graceful shutdown)
 - Force power off CM5 nodes (hard shutdown)
 - Reset CM5 nodes
+- PWM Fan Control with PID algorithm
+- **Prometheus Integration** for cluster-wide temperature monitoring
 - Native Go implementation using go-gpiocdev (no external dependencies)
 
 ## Installation
@@ -119,22 +121,13 @@ sudo nanoctl init
 
 ### Fan Control
 
-Start the fan control daemon (runs in foreground):
+Start the fan control daemon:
 
 ```bash
 sudo nanoctl fan
 ```
 
-Options:
-- `--target`: Target temperature in Celsius (default: 55.0)
-- `--pin`: GPIO pin number (BCM) (default: 13)
-- `--chip`: GPIO chip name (default: "gpiochip0")
-- `--kp`, `--ki`, `--kd`: PID controller gains
-
-Example for RPi 5:
-```bash
-sudo nanoctl fan --target 60 --pin 13
-```
+Configuration is loaded from `/etc/nanoctl/fan.yaml`. See [Prometheus Integration](docs/PROMETHEUS.md) for advanced monitoring options.
 
 ### Automatic Service Installation
 
@@ -144,16 +137,23 @@ To install the fan controller as a systemd service that runs automatically at bo
 sudo nanoctl install-service
 ```
 
-You can pass the same flags to configure the service:
+This command will:
+1. Create a default configuration file at `/etc/nanoctl/fan.yaml`
+2. Create `/etc/systemd/system/nanoctl-fan.service`
+3. Reload systemd daemon
+4. Enable and start the service
+
+### Prometheus Integration
+
+NanoCtl can read temperature metrics from a Prometheus server, allowing you to control fan speed based on cluster-wide temperatures.
+
+To test your Prometheus configuration:
 
 ```bash
-sudo nanoctl install-service --target 60 --pin 13
+sudo nanoctl check-prometheus
 ```
 
-This command will:
-1. Create `/etc/systemd/system/nanoctl-fan.service`
-2. Reload systemd daemon
-3. Enable and start the service
+See [docs/PROMETHEUS.md](docs/PROMETHEUS.md) for full configuration details.
 
 ## GPIO Details
 

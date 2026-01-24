@@ -9,12 +9,56 @@ gpio:
 temperature:
   target: 55.0  # Target CPU temperature in Celsius
 
+  # Temperature source configuration
+  source:
+    # Primary source: "prometheus" or "file"
+    # If primary fails, system falls back to the fallback source
+    primary: "file"
+    fallback: "file"
+
+    # Prometheus configuration (optional - for cluster temperature monitoring)
+    # Only 'host' is required if using Prometheus
+    # prometheus:
+    #   host: "http://prometheus:9090"  # Required: Prometheus server URL
+    #   
+    #   # Optional: PromQL query to fetch temperature (default: max(node_hwmon_temp_celsius{sensor="temp0"}))
+    #   # Examples:
+    #   #   - Single node: node_hwmon_temp_celsius{instance="node1:9100",sensor="temp0"}
+    #   #   - Cluster max: max(node_hwmon_temp_celsius{sensor="temp0"})
+    #   #   - Cluster avg: avg(node_hwmon_temp_celsius{sensor="temp0"})
+    #   #   - Specific job: max(node_hwmon_temp_celsius{job="node-exporter",sensor="temp0"})
+    #   query: 'max(node_hwmon_temp_celsius{sensor="temp0"})'
+    #   
+    #   # Optional: Query timeout (default: "5s")
+    #   timeout: "5s"
+    #   
+    #   # Optional: Basic authentication
+    #   auth:
+    #     username: "admin"
+    #     password: "secret"
+
+    # File source configuration (local thermal zone reading)
+    file:
+      path: "/sys/class/thermal/thermal_zone0/temp"
+
 # PID Controller Parameters
 # These values may need tuning for your specific setup
 pid:
   kp: 5.0   # Proportional gain
   ki: 0.1   # Integral gain
   kd: 0.5   # Derivative gain
+
+# OTLP Metrics Configuration (Push)
+# Actively push metrics to an OpenTelemetry collector or compatible backend
+metrics:
+  enabled: false
+  endpoint: "localhost:4317" # OTLP gRPC endpoint
+  insecure: true             # Set to false if using TLS
+  interval: "10s"            # Push interval
+  # Optional: Basic authentication
+  # auth:
+  #   username: "user"
+  #   password: "password"
 
 # Monitoring Settings
 monitor:

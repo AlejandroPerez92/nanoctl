@@ -1,35 +1,16 @@
 package fan
 
 import (
+	"NanoCtl/pkg/temperature"
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/felixge/pidctrl"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 )
-
-const (
-	ThermalZonePath = "/sys/class/thermal/thermal_zone0/temp"
-)
-
-// GetCPUTemp reads the CPU temperature from the thermal zone
-func GetCPUTemp() (float64, error) {
-	data, err := os.ReadFile(ThermalZonePath)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read thermal zone: %w", err)
-	}
-
-	tempStr := strings.TrimSpace(string(data))
-	tempMilli, err := strconv.ParseInt(tempStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse temperature: %w", err)
-	}
-
-	return float64(tempMilli) / 1000.0, nil
-}
 
 // MonitorConfig holds configuration for the fan monitor
 type MonitorConfig struct {
@@ -38,6 +19,7 @@ type MonitorConfig struct {
 	TargetTemp    float64
 	Kp, Ki, Kd    float64
 	CheckInterval time.Duration
+	TempSource    temperature.Source
 }
 
 // RunMonitor starts the fan control monitor
@@ -54,6 +36,24 @@ func RunMonitor(ctx context.Context, config MonitorConfig) error {
 	pid.SetOutputLimits(0.0, 100.0)
 	pid.Set(config.TargetTemp)
 
+	// Initialize Metrics
+	meter := otel.Meter("nanoctl")
+	tempGauge, err := meter.Float64Gauge("nanoctl.temperature.celsius",
+		metric.WithDescription("Current CPU temperature"),
+		metric.WithUnit("Ce"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create temperature gauge: %v\n", err)
+	}
+
+	fanGauge, err := meter.Float64Gauge("nanoctl.fan.duty_cycle.percent",
+		metric.WithDescription("Current Fan PWM duty cycle"),
+		metric.WithUnit("%"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create fan gauge: %v\n", err)
+	}
+
 	fmt.Printf("Starting Fan Monitor...\n")
 	fmt.Printf("Target Temp: %.1f°C\n", config.TargetTemp)
 	fmt.Printf("GPIO: %s pin %d\n", config.ChipName, config.Pin)
@@ -67,7 +67,8 @@ func RunMonitor(ctx context.Context, config MonitorConfig) error {
 			fmt.Println("Monitor stopping...")
 			return nil
 		case <-ticker.C:
-			temp, err := GetCPUTemp()
+			// Use the configured temperature source
+			temp, err := config.TempSource.GetTemperature()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reading temp: %v\n", err)
 				continue
@@ -78,6 +79,14 @@ func RunMonitor(ctx context.Context, config MonitorConfig) error {
 			output := pid.Update(temp)
 
 			pwm.SetDutyCycle(output)
+
+			// Record metrics
+			if tempGauge != nil {
+				tempGauge.Record(ctx, temp)
+			}
+			if fanGauge != nil {
+				fanGauge.Record(ctx, output)
+			}
 		}
 	}
 }
