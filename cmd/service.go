@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"NanoCtl/pkg/config"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"text/template"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ Description=NanoCtl Fan Controller
 After=multi-user.target
 
 [Service]
-ExecStart={{.BinaryPath}} fan --chip {{.Chip}} --pin {{.Pin}} --target {{.Target}} --kp {{.Kp}} --ki {{.Ki}} --kd {{.Kd}} --interval {{.Interval}}
+ExecStart={{.BinaryPath}} fan
 Restart=always
 User=root
 Type=simple
@@ -27,21 +27,22 @@ WantedBy=multi-user.target
 
 type ServiceConfig struct {
 	BinaryPath string
-	Chip       string
-	Pin        int
-	Target     float64
-	Kp, Ki, Kd float64
-	Interval   string
 }
 
 var installServiceCmd = &cobra.Command{
 	Use:   "install-service",
 	Short: "Install nanoctl-fan as a systemd service",
 	Long: `Creates and enables a systemd service for the fan controller.
-It uses the flags provided to this command to configure the service.
+
+This command will:
+1. Create a default configuration file at /etc/nanoctl/fan.yaml (if it doesn't exist)
+2. Create a systemd service file at /etc/systemd/system/nanoctl-fan.service
+3. Enable and start the service
+
+After installation, you can edit /etc/nanoctl/fan.yaml to customize the fan controller settings.
 
 Example:
-  sudo nanoctl install-service --target 60 --pin 13`,
+  sudo nanoctl install-service`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if os.Geteuid() != 0 {
 			fmt.Println("Error: This command must be run as root (sudo).")
@@ -62,15 +63,22 @@ Example:
 			os.Exit(1)
 		}
 
-		config := ServiceConfig{
+		// Check if config file exists, if not create default
+		configPath := config.DefaultConfigPath
+		if _, err := os.Stat(configPath); os.IsNotExist(err) {
+			fmt.Printf("Creating default configuration at %s...\n", configPath)
+			if err := config.CreateDefaultConfig(configPath); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to create config file: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Configuration file created.")
+		} else {
+			fmt.Printf("Configuration file already exists at %s\n", configPath)
+		}
+
+		// Create systemd service file
+		serviceConfig := ServiceConfig{
 			BinaryPath: binaryPath,
-			Chip:       fanChip,
-			Pin:        fanPin,
-			Target:     targetTemp,
-			Kp:         kp,
-			Ki:         ki,
-			Kd:         kd,
-			Interval:   checkInterval.String(),
 		}
 
 		servicePath := "/etc/systemd/system/nanoctl-fan.service"
@@ -89,7 +97,7 @@ Example:
 			os.Exit(1)
 		}
 
-		if err := tmpl.Execute(f, config); err != nil {
+		if err := tmpl.Execute(f, serviceConfig); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write service file: %v\n", err)
 			os.Exit(1)
 		}
@@ -107,24 +115,15 @@ Example:
 			os.Exit(1)
 		}
 
-		fmt.Println("Success! Fan controller is now running as a service.")
+		fmt.Println("\nSuccess! Fan controller is now running as a service.")
+		fmt.Printf("Configuration file: %s\n", configPath)
 		fmt.Println("Check status with: systemctl status nanoctl-fan")
+		fmt.Println("View logs with: journalctl -u nanoctl-fan -f")
+		fmt.Printf("\nTo customize settings, edit %s and restart the service:\n", configPath)
+		fmt.Println("  sudo systemctl restart nanoctl-fan")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(installServiceCmd)
-
-	// Reuse flags from fan command logic
-	// We need to redefine them here or access the variables.
-	// Since variables are package-level in cmd/fan.go, we can reuse them if they are exported or in same package.
-	// They are in 'cmd' package, but lowercase. So they are accessible in this file (same package).
-
-	installServiceCmd.Flags().StringVar(&fanChip, "chip", "gpiochip0", "GPIO chip name")
-	installServiceCmd.Flags().IntVar(&fanPin, "pin", 13, "GPIO pin number")
-	installServiceCmd.Flags().Float64Var(&targetTemp, "target", 55.0, "Target CPU temperature")
-	installServiceCmd.Flags().Float64Var(&kp, "kp", 5.0, "Proportional gain")
-	installServiceCmd.Flags().Float64Var(&ki, "ki", 0.1, "Integral gain")
-	installServiceCmd.Flags().Float64Var(&kd, "kd", 0.5, "Derivative gain")
-	installServiceCmd.Flags().DurationVar(&checkInterval, "interval", 1*time.Second, "Temperature check interval")
 }

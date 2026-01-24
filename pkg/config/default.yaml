@@ -1,0 +1,21 @@
+# NanoCtl Fan Controller Configuration
+
+# GPIO Configuration
+gpio:
+  chip_name: "gpiochip0"  # GPIO chip (gpiochip0 for RPi5)
+  pin: 13                  # GPIO pin number (BCM)
+
+# Temperature Control
+temperature:
+  target: 55.0  # Target CPU temperature in Celsius
+
+# PID Controller Parameters
+# These values may need tuning for your specific setup
+pid:
+  kp: 5.0   # Proportional gain
+  ki: 0.1   # Integral gain
+  kd: 0.5   # Derivative gain
+
+# Monitoring Settings
+monitor:
+  check_interval: "1s"  # How often to check temperature (e.g., "1s", "500ms")

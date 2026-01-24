@@ -1,23 +1,19 @@
 package cmd
 
 import (
+	"NanoCtl/pkg/config"
 	"NanoCtl/pkg/fan"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	fanChip       string
-	fanPin        int
-	targetTemp    float64
-	kp, ki, kd    float64
-	checkInterval time.Duration
+	configPath string
 )
 
 var fanCmd = &cobra.Command{
@@ -25,15 +21,33 @@ var fanCmd = &cobra.Command{
 	Short: "Control cooling fan based on CPU temperature",
 	Long: `Starts a daemon-like process that monitors CPU temperature and 
 controls a fan using PWM (Pulse Width Modulation) on a GPIO pin.
-Implements a PID controller to maintain the target temperature.`,
+Implements a PID controller to maintain the target temperature.
+
+Configuration is loaded from /etc/nanoctl/fan.yaml by default.
+Run 'sudo nanoctl install-service' to create a default configuration file.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		config := fan.MonitorConfig{
-			ChipName:      fanChip,
-			Pin:           fanPin,
-			TargetTemp:    targetTemp,
-			Kp:            kp,
-			Ki:            ki,
-			Kd:            kd,
+		// Load configuration from file
+		cfg, err := config.LoadFanConfig(configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Parse check interval duration
+		checkInterval, err := cfg.GetCheckIntervalDuration()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing check interval: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Convert to fan.MonitorConfig
+		monitorConfig := fan.MonitorConfig{
+			ChipName:      cfg.GPIO.ChipName,
+			Pin:           cfg.GPIO.Pin,
+			TargetTemp:    cfg.Temperature.Target,
+			Kp:            cfg.PID.Kp,
+			Ki:            cfg.PID.Ki,
+			Kd:            cfg.PID.Kd,
 			CheckInterval: checkInterval,
 		}
 
@@ -48,7 +62,7 @@ Implements a PID controller to maintain the target temperature.`,
 			cancel()
 		}()
 
-		if err := fan.RunMonitor(ctx, config); err != nil {
+		if err := fan.RunMonitor(ctx, monitorConfig); err != nil {
 			fmt.Fprintf(os.Stderr, "Fan monitor error: %v\n", err)
 			os.Exit(1)
 		}
@@ -58,14 +72,5 @@ Implements a PID controller to maintain the target temperature.`,
 func init() {
 	rootCmd.AddCommand(fanCmd)
 
-	fanCmd.Flags().StringVar(&fanChip, "chip", "gpiochip0", "GPIO chip name (e.g., gpiochip0 for RPi5)")
-	fanCmd.Flags().IntVar(&fanPin, "pin", 13, "GPIO pin number (BCM)")
-	fanCmd.Flags().Float64Var(&targetTemp, "target", 55.0, "Target CPU temperature in Celsius")
-
-	// Default PID values - these might need tuning
-	fanCmd.Flags().Float64Var(&kp, "kp", 5.0, "Proportional gain")
-	fanCmd.Flags().Float64Var(&ki, "ki", 0.1, "Integral gain")
-	fanCmd.Flags().Float64Var(&kd, "kd", 0.5, "Derivative gain")
-
-	fanCmd.Flags().DurationVar(&checkInterval, "interval", 1*time.Second, "Temperature check interval")
+	fanCmd.Flags().StringVar(&configPath, "config", config.DefaultConfigPath, "Path to configuration file")
 }
