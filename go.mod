@@ -1,4 +1,4 @@
-module NanoCtl
+module github.com/AlejandroPerez92/nanoctl
 
 go 1.25
 

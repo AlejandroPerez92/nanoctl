@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"NanoCtl/pkg/config"
 	"fmt"
+	"github.com/AlejandroPerez92/nanoctl/pkg/config"
 	"os"
 	"os/exec"
 	"path/filepath"

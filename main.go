@@ -1,7 +1,7 @@
 package main
 
 import (
-	"NanoCtl/cmd"
+	"github.com/AlejandroPerez92/nanoctl/cmd"
 )
 
 func main() {

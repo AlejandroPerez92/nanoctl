@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"NanoCtl/pkg/config"
-	"NanoCtl/pkg/fan"
-	"NanoCtl/pkg/metrics"
-	"NanoCtl/pkg/temperature"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/AlejandroPerez92/nanoctl/pkg/config"
+	"github.com/AlejandroPerez92/nanoctl/pkg/fan"
+	"github.com/AlejandroPerez92/nanoctl/pkg/metrics"
+	"github.com/AlejandroPerez92/nanoctl/pkg/temperature"
 	"os"
 	"os/signal"
 	"syscall"

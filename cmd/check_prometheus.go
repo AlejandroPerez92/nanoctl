@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"NanoCtl/pkg/config"
-	"NanoCtl/pkg/temperature"
 	"fmt"
+	"github.com/AlejandroPerez92/nanoctl/pkg/config"
+	"github.com/AlejandroPerez92/nanoctl/pkg/temperature"
 	"os"
 	"time"
 

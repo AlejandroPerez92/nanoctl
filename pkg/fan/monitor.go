@@ -1,9 +1,9 @@
 package fan
 
 import (
-	"NanoCtl/pkg/temperature"
 	"context"
 	"fmt"
+	"github.com/AlejandroPerez92/nanoctl/pkg/temperature"
 	"os"
 	"time"
 

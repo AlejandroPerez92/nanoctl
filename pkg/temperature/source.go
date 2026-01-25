@@ -2,10 +2,6 @@
 // It supports both local file-based reading and remote Prometheus queries.
 package temperature
 
-import (
-	"fmt"
-)
-
 // Source defines the interface for fetching temperature data.
 type Source interface {
 	// GetTemperature returns the current temperature in degrees Celsius.
@@ -44,17 +40,4 @@ type PrometheusConfig struct {
 type AuthConfig struct {
 	Username string
 	Password string
-}
-
-// NewSource creates a new temperature source based on the provided configuration.
-func NewSource(config SourceConfig) (Source, error) {
-	if config.Type == SourcePrometheus {
-		return NewPrometheusSource(config.Prometheus)
-	}
-
-	if config.Type == SourceFile {
-		return NewFileSource(config.FilePath), nil
-	}
-
-	return nil, fmt.Errorf("unknown source type: %s", config.Type)
 }

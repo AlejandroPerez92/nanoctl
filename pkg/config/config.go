@@ -240,8 +240,3 @@ func CreateDefaultConfig(path string) error {
 
 	return nil
 }
-
-// GetDefaultConfigYAML returns the embedded default configuration as a string
-func GetDefaultConfigYAML() string {
-	return string(defaultConfigYAML)
-}

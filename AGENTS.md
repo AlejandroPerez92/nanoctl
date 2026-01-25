@@ -8,7 +8,7 @@ This guide is for AI coding agents working on NanoCtl, a Go-based CLI tool for m
 - **Target Platform**: Linux ARM64 (Raspberry Pi systems)
 - **Framework**: Cobra CLI framework
 - **Hardware Interface**: GPIO via `github.com/warthog618/go-gpiocdev`
-- **Module Name**: `NanoCtl`
+- **Module Name**: `github.com/AlejandroPerez92/nanoctl`
 
 ## Build Commands
 
@@ -96,8 +96,8 @@ go mod verify
       "github.com/spf13/cobra"
       "github.com/warthog618/go-gpiocdev"
       
-      "NanoCtl/pkg/fan"
-      "NanoCtl/pkg/gpio"
+      "github.com/AlejandroPerez92/nanoctl/pkg/fan"
+      "github.com/AlejandroPerez92/nanoctl/pkg/gpio"
   )
   ```
 

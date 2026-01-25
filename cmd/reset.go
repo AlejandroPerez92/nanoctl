@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"NanoCtl/pkg/gpio"
 	"fmt"
+	"github.com/AlejandroPerez92/nanoctl/pkg/gpio"
 	"os"
 	"strconv"
 
