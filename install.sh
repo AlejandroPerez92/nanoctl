@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-REPO="nanocluster/nanoctl" # Replace with your actual GitHub repository user/repo
+REPO="AlejandroPerez92/nanoctl" # Replace with your actual GitHub repository user/repo
 BINARY_NAME="nanoctl"
 INSTALL_DIR="/usr/local/bin"
 

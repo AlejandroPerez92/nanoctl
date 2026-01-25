@@ -68,3 +68,9 @@ Run the check command to verify NanoCtl can read from your Prometheus:
 ```bash
 sudo nanoctl check-prometheus
 ```
+
+> **⚠️ Performance Warning**
+>
+> When using Prometheus as a temperature source, you are likely scraping `node_exporter` metrics.
+> To ensure the fan controller responds quickly to temperature spikes, **the scraping interval for `node_exporter` must be set to 15s or less** in your Prometheus configuration.
+> A longer scraping interval (e.g., 1m) will cause significant delays in fan reaction, potentially leading to overheating.

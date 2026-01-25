@@ -51,6 +51,7 @@ metrics:
 - `source`:
   - `primary`: Where to read temperature from (`file` = local sensor, `prometheus` = remote query).
   - `fallback`: Backup source if primary fails.
+  - **Note**: If using `prometheus`, ensure your scraping interval is **< 15s** for responsive cooling.
 
 ### PID Controller
 - `kp`: Proportional gain (reacts to current error).

@@ -2,6 +2,8 @@
 
 **NanoCtl** is a CLI tool and daemon for managing **Nano Cluster** nodes (CM5). It handles power management via GPIO and intelligent fan control using PID algorithms.
 
+![NanoCtl Example](doc/example.png)
+
 ## Features
 
 *   **Power Management**: Power On, Graceful Shutdown, Force Off, and Reset for CM5 nodes.
