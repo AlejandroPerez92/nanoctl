@@ -17,7 +17,7 @@
 Run this command on your Raspberry Pi/CM5 to install NanoCtl and enable the fan service automatically:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nanocluster/nanoctl/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/AlejandroPerez92/nanoctl/main/install.sh | sudo bash
 ```
 
 ## 📖 Documentation

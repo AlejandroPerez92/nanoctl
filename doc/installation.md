@@ -5,7 +5,7 @@
 To install NanoCtl on your Raspberry Pi (CM5/Pi 4/Pi 5), simply run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nanocluster/nanoctl/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/AlejandroPerez92/nanoctl/main/install.sh | sudo bash
 ```
 
 This script will:
@@ -17,11 +17,11 @@ This script will:
 ## Manual Installation
 
 ### 1. Download Binary
-Download the latest binary from the [Releases Page](https://github.com/nanocluster/nanoctl/releases).
+Download the latest binary from the [Releases Page](https://github.com/AlejandroPerez92/nanoctl/releases).
 
 ```bash
 # Example for ARM64 (CM5/Pi 5)
-wget https://github.com/nanocluster/nanoctl/releases/latest/download/nanoctl-linux-arm64
+wget https://github.com/AlejandroPerez92/nanoctl/releases/latest/download/nanoctl-linux-arm64
 chmod +x nanoctl-linux-arm64
 sudo mv nanoctl-linux-arm64 /usr/local/bin/nanoctl
 ```
@@ -39,7 +39,7 @@ If you prefer to build from source:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/nanocluster/nanoctl.git
+   git clone https://github.com/AlejandroPerez92/nanoctl.git
    cd nanoctl
    ```
 
