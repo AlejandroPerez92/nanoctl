@@ -23,6 +23,16 @@ type FanConfig struct {
 		Pin      int    `yaml:"pin"`
 	} `yaml:"gpio"`
 
+	PWM struct {
+		Mode         string  `yaml:"mode"`
+		FrequencyKHz float64 `yaml:"frequency_khz"`
+		Hardware     struct {
+			Chip     string `yaml:"chip"`
+			Channel  int    `yaml:"channel"`
+			Inverted bool   `yaml:"inverted"`
+		} `yaml:"hardware"`
+	} `yaml:"pwm"`
+
 	Temperature struct {
 		Target float64      `yaml:"target"`
 		Source SourceConfig `yaml:"source"`
@@ -108,6 +118,18 @@ func applyDefaults(config *FanConfig) {
 	if config.GPIO.Pin == 0 {
 		config.GPIO.Pin = 13
 	}
+	if config.PWM.Mode == "" {
+		config.PWM.Mode = "software"
+	}
+	if config.PWM.FrequencyKHz == 0 {
+		config.PWM.FrequencyKHz = 25.0
+	}
+	if config.PWM.Hardware.Chip == "" {
+		config.PWM.Hardware.Chip = "pwmchip0"
+	}
+	if config.PWM.Hardware.Channel == 0 {
+		config.PWM.Hardware.Channel = 1
+	}
 	if config.Temperature.Target == 0 {
 		config.Temperature.Target = 55.0
 	}
@@ -151,6 +173,23 @@ func (c *FanConfig) Validate() error {
 	// Validate GPIO pin (valid BCM pins for RPi are 0-27)
 	if c.GPIO.Pin < 0 || c.GPIO.Pin > 27 {
 		return fmt.Errorf("gpio.pin must be between 0 and 27, got %d", c.GPIO.Pin)
+	}
+
+	// Validate PWM configuration
+	switch c.PWM.Mode {
+	case "software":
+		if c.PWM.FrequencyKHz <= 0 {
+			return fmt.Errorf("pwm.frequency_khz must be positive, got %.2f", c.PWM.FrequencyKHz)
+		}
+	case "hardware":
+		if c.PWM.Hardware.Chip == "" {
+			return fmt.Errorf("pwm.hardware.chip is required when pwm.mode is 'hardware'")
+		}
+		if c.PWM.Hardware.Channel < 0 {
+			return fmt.Errorf("pwm.hardware.channel must be >= 0, got %d", c.PWM.Hardware.Channel)
+		}
+	default:
+		return fmt.Errorf("pwm.mode must be 'software' or 'hardware', got '%s'", c.PWM.Mode)
 	}
 
 	// Validate target temperature (reasonable range)

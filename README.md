@@ -42,6 +42,46 @@ sudo systemctl status nanoctl-fan  # Check fan status
 sudo journalctl -u nanoctl-fan -f  # View logs
 ```
 
+## Hardware PWM (CM5)
+
+NanoCtl supports hardware PWM via sysfs for CM5 fan control, including inverted PWM (high=0%, low=100%).
+
+### 1) Enable PWM overlays (Raspberry Pi Debian OS)
+
+Edit the boot config file and add the overlays below:
+
+```bash
+sudo nano /boot/firmware/config.txt
+```
+
+Add:
+
+```ini
+dtoverlay=dwc2,dr_mode=host
+dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4
+```
+
+Reboot after saving.
+
+### 2) Configure NanoCtl for hardware PWM
+
+Use this `fan.yaml` snippet:
+
+```yaml
+pwm:
+  mode: "hardware"
+  frequency_khz: 25
+  hardware:
+    chip: "pwmchip0"
+    channel: 1
+    inverted: true
+```
+
+Notes:
+- `frequency_khz` defaults to 25 if omitted.
+- `inverted: true` maps high=0% and low=100% for inverted fans.
+- `channel: 1` corresponds to `/sys/class/pwm/pwmchip0/pwm1`.
+
 ## Hardware References
 
 This tool is designed for the Sipeed Nano Cluster hardware.

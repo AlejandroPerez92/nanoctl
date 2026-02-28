@@ -5,6 +5,20 @@ gpio:
   chip_name: "gpiochip0"  # GPIO chip (gpiochip0 for RPi5)
   pin: 13                  # GPIO pin number (BCM)
 
+# PWM Configuration
+pwm:
+  # Mode: "software" (bit-banged GPIO) or "hardware" (sysfs PWM)
+  mode: "software"
+
+  # PWM frequency
+  frequency_khz: 25
+
+  # Hardware PWM settings (used when mode is "hardware")
+  hardware:
+    chip: "pwmchip0"  # /sys/class/pwm/<chip>
+    channel: 1        # pwm<channel>
+    inverted: false   # true: high=0%, low=100%
+
 # Temperature Control
 temperature:
   target: 55.0  # Target CPU temperature in Celsius

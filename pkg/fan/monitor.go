@@ -16,20 +16,35 @@ import (
 type MonitorConfig struct {
 	ChipName      string
 	Pin           int
+	PWM           PWMConfig
 	TargetTemp    float64
 	Kp, Ki, Kd    float64
 	CheckInterval time.Duration
 	TempSource    temperature.Source
 }
 
+func periodNsFromFrequency(frequencyKHz float64) (int64, error) {
+	if frequencyKHz <= 0 {
+		return 0, fmt.Errorf("pwm.frequency_khz must be positive, got %.2f", frequencyKHz)
+	}
+	return int64(1e6 / frequencyKHz), nil
+}
+
+func frequencyHz(frequencyKHz float64) float64 {
+	return frequencyKHz * 1000.0
+}
+
 // RunMonitor starts the fan control monitor
 func RunMonitor(ctx context.Context, config MonitorConfig) error {
-	// Initialize PWM Controller (50Hz)
-	pwm := NewPWMController(config.ChipName, config.Pin, 50.0)
-	if err := pwm.Start(); err != nil {
+	// Initialize PWM Controller
+	controller, err := newPWMController(config)
+	if err != nil {
+		return fmt.Errorf("failed to create PWM controller: %w", err)
+	}
+	if err := controller.Start(); err != nil {
 		return fmt.Errorf("failed to start PWM controller: %w", err)
 	}
-	defer pwm.Stop()
+	defer controller.Stop()
 
 	// Initialize PID Controller
 	pid := pidctrl.NewPIDController(config.Kp, config.Ki, config.Kd)
@@ -56,7 +71,7 @@ func RunMonitor(ctx context.Context, config MonitorConfig) error {
 
 	fmt.Printf("Starting Fan Monitor...\n")
 	fmt.Printf("Target Temp: %.1f°C\n", config.TargetTemp)
-	fmt.Printf("GPIO: %s pin %d\n", config.ChipName, config.Pin)
+	printPWMConfig(config)
 
 	ticker := time.NewTicker(config.CheckInterval)
 	defer ticker.Stop()
@@ -78,7 +93,7 @@ func RunMonitor(ctx context.Context, config MonitorConfig) error {
 
 			output := pid.Update(temp)
 
-			pwm.SetDutyCycle(output)
+			controller.SetDutyCycle(output)
 
 			// Record metrics
 			if tempGauge != nil {

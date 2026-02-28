@@ -59,8 +59,17 @@ func runFan(cmd *cobra.Command, args []string) error {
 
 	// Convert to fan.MonitorConfig
 	monitorConfig := fan.MonitorConfig{
-		ChipName:      cfg.GPIO.ChipName,
-		Pin:           cfg.GPIO.Pin,
+		ChipName: cfg.GPIO.ChipName,
+		Pin:      cfg.GPIO.Pin,
+		PWM: fan.PWMConfig{
+			Mode:         cfg.PWM.Mode,
+			FrequencyKHz: cfg.PWM.FrequencyKHz,
+			Hardware: fan.HardwarePWMConfig{
+				Chip:     cfg.PWM.Hardware.Chip,
+				Channel:  cfg.PWM.Hardware.Channel,
+				Inverted: cfg.PWM.Hardware.Inverted,
+			},
+		},
 		TargetTemp:    cfg.Temperature.Target,
 		Kp:            cfg.PID.Kp,
 		Ki:            cfg.PID.Ki,
